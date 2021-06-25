@@ -38,7 +38,7 @@ dependencies {
 ```
 
 #### Todo 3
-```java
+```kotlin
 //todo 3
 @HiltAndroidApp
 public final class MyApp extends MultiDexApplication {}
@@ -56,79 +56,77 @@ public final class MyApp extends MultiDexApplication {}
 ```
 
 #### Todo 4
-```java
+```kotlin
 //todo 4
 @Module
-@InstallIn(ApplicationComponent.class)
-public final class AppModule {
+@InstallIn(ApplicationComponent::class)
+object NetworkModule{
 
     @Provides
     @Singleton
-    static Retrofit retrofit(){
-        return new Retrofit.Builder()
-                .baseUrl("https://api.openweathermap.org/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+    fun retrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://api.openweathermap.org/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
     }
 }
 ```
 
 #### Todo 5
-```java
+```kotlin
 //todo 5
-public interface ApiService {
-
+interface ApiService {
     @GET("data/2.5/forecast")
-    Call<ResponseCuaca> getCuaca(
-            @Query("id") String id,
-            @Query("appid") String appid,
-            @Query("units") String units
-    );
-
+    fun getCuaca(
+        @Query("id") id: String,
+        @Query("appid") appid: String,
+        @Query("units") units: String
+    ): Call<ResponseCuaca>
 }
 ```
 
 #### Todo 6
-```java
-//todo 6
-public final class NetworkModule {
+```kotlin
+object NetworkModule{
 
     //todo 6
     @Singleton
     @Provides
-    static ApiService apiService(Retrofit retrofit){
-        return retrofit.create(ApiService.class);
+    fun apiService(retrofit: Retrofit): ApiService {
+        return retrofit.create(ApiService::class.java)
     }
     //end todo 6
 }
 ```
 
 #### Todo 7
-```java
+```kotlin
 //todo 7
 @AndroidEntryPoint
-public class MainActivity extends AppCompatActivity {
+class MainActivity : AppCompatActivity() {
 
-    private static final String TAG = "MainActivity";
+    private val TAG = "MainActivity_"
 
-    @Inject ApiService apiService;
+    @Inject lateinit var apiService: ApiService
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-        apiService.getCuaca("1642907", "03207a5afa25a1f6db2d2fcc6dd63fc1", "metric").enqueue(new Callback<ResponseCuaca>() {
-            @Override
-            public void onResponse(Call<ResponseCuaca> call, Response<ResponseCuaca> response) {
-                Log.d(TAG, "onResponse: "+response.body().getList().size());
-            }
+        apiService.getCuaca("1642907", "03207a5afa25a1f6db2d2fcc6dd63fc1", "metric")
+            .enqueue(object : Callback<ResponseCuaca> {
+                override fun onFailure(call: Call<ResponseCuaca>, t: Throwable) {
+                    Log.d(TAG, "onFailure: "+t.message)
+                }
 
-            @Override
-            public void onFailure(Call<ResponseCuaca> call, Throwable t) {
-                Log.d(TAG, "onFailure: "+t.getMessage());
-            }
-        });
+                override fun onResponse(
+                    call: Call<ResponseCuaca>,
+                    response: Response<ResponseCuaca>
+                ) {
+                    Log.d(TAG, "onResponse: "+ (response.body()?.list?.size ?: 0))
+                }
+            })
     }
 }
 ```
